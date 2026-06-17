@@ -43,18 +43,18 @@ const config: Config = {
           foreground: 'hsl(var(--accent-foreground))',
         },
         brand: {
-          purple: '#7C3AED',
-          violet: '#8B5CF6',
-          accent: '#A855F7',
-          light: '#C084FC',
-          glow: '#6D28D9',
+          purple: '#2563eb', // Blue 600
+          violet: '#1d4ed8', // Blue 700
+          accent: '#3b82f6', // Blue 500
+          light: '#60a5fa',  // Blue 400
+          glow: '#1e40af',   // Blue 800
         },
         dark: {
-          bg: '#09090F',
-          card: '#111118',
-          nav: '#0D0D14',
-          border: '#1C1C2E',
-          hover: '#16161F',
+          bg: '#09090b',     // Zinc 950
+          card: '#18181b',   // Zinc 900
+          nav: '#09090b',    // Zinc 950
+          border: '#27272a', // Zinc 800
+          hover: '#27272a',  // Zinc 800
         },
       },
       borderRadius: {
@@ -64,7 +64,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-syne)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         'accordion-down': {
@@ -121,10 +121,10 @@ const config: Config = {
         marquee: 'marquee 25s linear infinite',
       },
       backgroundImage: {
-        'gradient-brand': 'linear-gradient(135deg, #7C3AED 0%, #A855F7 100%)',
-        'gradient-card': 'linear-gradient(135deg, #111118 0%, #16162A 100%)',
-        'gradient-hero': 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(124,58,237,0.25) 0%, transparent 100%)',
-        'gradient-mesh': 'radial-gradient(at 40% 20%, rgba(124,58,237,0.15) 0px, transparent 50%), radial-gradient(at 80% 80%, rgba(168,85,247,0.1) 0px, transparent 50%)',
+        'gradient-brand': 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+        'gradient-card': 'linear-gradient(135deg, #18181b 0%, #27272a 100%)',
+        'gradient-hero': 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(37,99,235,0.15) 0%, transparent 100%)',
+        'gradient-mesh': 'radial-gradient(at 40% 20%, rgba(37,99,235,0.08) 0px, transparent 50%), radial-gradient(at 80% 80%, rgba(59,130,246,0.05) 0px, transparent 50%)',
         'shimmer-gradient': 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%)',
       },
     },

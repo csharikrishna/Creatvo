@@ -14,7 +14,7 @@ interface Props {
 // We redirect /username → /@username for SEO, and render at /@username
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const username = params.username.replace(/^@/, '')
+  const username = decodeURIComponent(params.username).replace(/^@/, '')
 
   const supabase = createClient()
   const { data: profile } = await supabase
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function UserProfilePage({ params }: Props) {
   // Strip @ prefix if present (e.g., someone navigates to /@username somehow)
-  const username = params.username.replace(/^@/, '')
+  const username = decodeURIComponent(params.username).replace(/^@/, '')
 
   const supabase = createClient()
 

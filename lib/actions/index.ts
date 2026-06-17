@@ -28,9 +28,11 @@ export async function toggleFollow(targetUserId: string) {
     .single()
 
   if (existing) {
-    await supabase.from('follows').delete().eq('id', existing.id)
+    const { error } = await supabase.from('follows').delete().eq('id', existing.id)
+    if (error) throw new Error(error.message)
   } else {
-    await supabase.from('follows').insert({ follower_id: user.id, following_id: targetUserId })
+    const { error } = await supabase.from('follows').insert({ follower_id: user.id, following_id: targetUserId })
+    if (error) throw new Error(error.message)
   }
 
   revalidatePath(`/@${targetUserId}`)
@@ -56,12 +58,14 @@ export async function toggleLike(
     .single()
 
   if (existing) {
-    await supabase.from('likes').delete().eq('id', existing.id)
+    const { error } = await supabase.from('likes').delete().eq('id', existing.id)
+    if (error) throw new Error(error.message)
     // Decrement count
     const table = contentType === 'content_item' ? 'content_items' : contentType === 'article' ? 'articles' : 'posts'
     await supabase.rpc('decrement_likes', { p_table: table, p_id: contentId })
   } else {
-    await supabase.from('likes').insert({ user_id: user.id, content_type: contentType, content_id: contentId })
+    const { error } = await supabase.from('likes').insert({ user_id: user.id, content_type: contentType, content_id: contentId })
+    if (error) throw new Error(error.message)
     // Increment count
     const table = contentType === 'content_item' ? 'content_items' : contentType === 'article' ? 'articles' : 'posts'
     await supabase.rpc('increment_likes', { p_table: table, p_id: contentId })
@@ -89,9 +93,17 @@ export async function toggleSave(
     .single()
 
   if (existing) {
-    await supabase.from('saves').delete().eq('id', existing.id)
+    const { error } = await supabase.from('saves').delete().eq('id', existing.id)
+    if (error) throw new Error(error.message)
+    // Decrement count
+    const table = contentType === 'content_item' ? 'content_items' : contentType === 'article' ? 'articles' : 'posts'
+    await supabase.rpc('decrement_saves', { p_table: table, p_id: contentId })
   } else {
-    await supabase.from('saves').insert({ user_id: user.id, content_type: contentType, content_id: contentId })
+    const { error } = await supabase.from('saves').insert({ user_id: user.id, content_type: contentType, content_id: contentId })
+    if (error) throw new Error(error.message)
+    // Increment count
+    const table = contentType === 'content_item' ? 'content_items' : contentType === 'article' ? 'articles' : 'posts'
+    await supabase.rpc('increment_saves', { p_table: table, p_id: contentId })
   }
 
   return { saved: !existing }
@@ -120,6 +132,10 @@ export async function createComment(
   }).select('*, profiles(*)').single()
 
   if (error) throw error
+
+  // Increment comments count
+  const table = contentType === 'content_item' ? 'content_items' : contentType === 'article' ? 'articles' : 'posts'
+  await supabase.rpc('increment_comments', { p_table: table, p_id: contentId })
 
   revalidatePath('/')
   return data
@@ -162,13 +178,20 @@ export async function trackView(contentId: string, contentType: string) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  await supabase.from('content_views').insert({
+  const { error } = await supabase.from('content_views').insert({
     content_id: contentId,
     content_type: contentType,
     viewer_id: user?.id || null,
     viewer_ip: null,
     referrer: null,
   })
+  if (error) {
+    console.error('Error tracking view:', error)
+  } else {
+    // Increment view count
+    const table = contentType === 'content_item' ? 'content_items' : contentType === 'article' ? 'articles' : 'posts'
+    await supabase.rpc('increment_views', { p_table: table, p_id: contentId })
+  }
 }
 
 // ─── Report content ───────────────────────────────────────────────────────────
@@ -276,7 +299,8 @@ export async function markNotificationsRead(notificationIds?: string[]) {
     query = query.in('id', notificationIds)
   }
 
-  await query
+  const { error } = await query
+  if (error) throw new Error(error.message)
   revalidatePath('/dashboard')
   return { success: true }
 }

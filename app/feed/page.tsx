@@ -11,56 +11,6 @@ import type { ContentItem, Profile } from '@/types'
 
 export const metadata: Metadata = { title: 'Your Feed' }
 
-const mockProfile: Profile = {
-  id: '1', username: 'techguru', full_name: 'TechGuru', bio: null,
-  avatar_url: null, banner_url: null, creator_type: 'Tech Creator',
-  website_url: null, twitter_url: null, instagram_url: null,
-  followers_count: 86300, following_count: 120, views_count: 1200000,
-  posts_count: 245, is_verified: true, interests: ['ai', 'coding'],
-  created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-}
-
-const MOCK_FEED_ITEMS: ContentItem[] = Array.from({ length: 12 }, (_, i) => ({
-  id: String(i + 1),
-  category_id: 'c1',
-  user_id: '1',
-  title: [
-    'Top 10 Best AI Tools For Creators 2024',
-    'How I Made ₹1L from a Side Project in 60 Days',
-    'Complete Next.js 14 App Router Guide',
-    'Free Design Resources Every Creator Needs',
-    'ChatGPT Prompts for Business Growth',
-    'Best Productivity System for Entrepreneurs',
-    'Micro-SaaS Ideas You Can Build This Weekend',
-    'How to Build a Personal Brand on Twitter',
-    'Python for Data Science — Full Roadmap',
-    'Top Finance Apps to Track Your Money',
-    'Video Editing Workflow for Solo Creators',
-    'Building an Audience Without Paid Ads',
-  ][i],
-  thumbnail_url: null,
-  description: 'High-value resource curated for builders and creators.',
-  external_link: null,
-  download_link: null,
-  content_type: 'resource' as const,
-  tags: [['ai', 'tools'], ['business', 'money'], ['coding', 'nextjs'], ['design', 'free']][i % 4],
-  views_count: Math.floor(120000 - i * 9000),
-  clicks_count: Math.floor(8000 - i * 600),
-  likes_count: Math.floor(3000 - i * 230),
-  saves_count: Math.floor(1500 - i * 115),
-  shares_count: Math.floor(400 - i * 30),
-  engagement_score: 900 - i * 65,
-  created_at: new Date(Date.now() - i * 3600000 * 8).toISOString(),
-  updated_at: new Date().toISOString(),
-  profiles: mockProfile,
-}))
-
-const SUGGESTED_CREATORS: Profile[] = [
-  { ...mockProfile, id: '2', username: 'businesspro', full_name: 'BusinessPro', creator_type: 'Business Expert', followers_count: 52000 },
-  { ...mockProfile, id: '3', username: 'designwiz', full_name: 'DesignWiz', creator_type: 'Design Creator', followers_count: 38000, is_verified: false },
-  { ...mockProfile, id: '4', username: 'financeflow', full_name: 'FinanceFlow', creator_type: 'Finance Expert', followers_count: 29000 },
-]
-
 const FEED_TABS = [
   { id: 'foryou', label: 'For You', icon: Sparkles },
   { id: 'following', label: 'Following', icon: Users },
@@ -77,6 +27,25 @@ export default async function FeedPage({ searchParams }: { searchParams: { tab?:
   if (!profile) redirect('/auth/login')
 
   const tab = searchParams.tab || 'foryou'
+
+  // Fetch real content based on tab
+  let query = supabase.from('content_items').select('*, profiles(*)')
+  
+  if (tab === 'trending' || tab === 'foryou') {
+    query = query.order('engagement_score', { ascending: false })
+  } else if (tab === 'latest') {
+    query = query.order('created_at', { ascending: false })
+  }
+
+  const { data: feedItems } = await query.limit(20)
+
+  // Fetch real suggested creators (by followers)
+  const { data: suggestedCreators } = await supabase
+    .from('profiles')
+    .select('*')
+    .neq('id', user.id)
+    .order('followers_count', { ascending: false })
+    .limit(5)
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -113,18 +82,18 @@ export default async function FeedPage({ searchParams }: { searchParams: { tab?:
             {/* Feed tabs */}
             <div className="flex items-center gap-1 p-1 rounded-2xl bg-dark-card border border-white/[0.06]">
               {FEED_TABS.map(t => (
-                <a
+                <Link
                   key={t.id}
                   href={`/feed?tab=${t.id}`}
                   className={`flex items-center gap-1.5 flex-1 justify-center py-2 px-3 rounded-xl text-sm font-medium transition-all ${
                     tab === t.id
-                      ? 'bg-brand-purple/20 text-brand-violet border border-brand-purple/25'
+                      ? 'bg-white text-black border border-white'
                       : 'text-white/40 hover:text-white'
                   }`}
                 >
                   <t.icon className="h-3.5 w-3.5" />
                   <span className="hidden sm:block">{t.label}</span>
-                </a>
+                </Link>
               ))}
             </div>
 
@@ -145,9 +114,9 @@ export default async function FeedPage({ searchParams }: { searchParams: { tab?:
             )}
 
             {/* Feed grid */}
-            {tab !== 'following' && (
+            {tab !== 'following' && feedItems && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {MOCK_FEED_ITEMS.map(item => (
+                {feedItems.map(item => (
                   <ContentCard key={item.id} item={item} />
                 ))}
               </div>
@@ -172,20 +141,24 @@ export default async function FeedPage({ searchParams }: { searchParams: { tab?:
                 <Link href="/trending" className="text-xs text-brand-violet hover:underline">View all</Link>
               </div>
               <div className="space-y-4">
-                {SUGGESTED_CREATORS.map(creator => (
+                {suggestedCreators?.map(creator => (
                   <div key={creator.id} className="flex items-center gap-3">
                     <Link href={`/@${creator.username}`}>
-                      <div className="h-10 w-10 rounded-xl overflow-hidden bg-brand-purple/20 shrink-0 border border-white/[0.06] cursor-pointer hover:border-brand-purple/30 transition-all">
-                        <div className="h-full w-full flex items-center justify-center text-sm font-bold text-brand-violet">
-                          {creator.username[0].toUpperCase()}
-                        </div>
+                      <div className="h-10 w-10 rounded-xl overflow-hidden bg-white/5 shrink-0 border border-white/[0.06] cursor-pointer hover:border-white/20 transition-all">
+                        {creator.avatar_url ? (
+                          <img src={creator.avatar_url} alt={creator.username} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center text-sm font-bold text-white">
+                            {creator.username[0].toUpperCase()}
+                          </div>
+                        )}
                       </div>
                     </Link>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{creator.full_name}</p>
-                      <p className="text-xs text-white/35">{(creator.followers_count / 1000).toFixed(0)}K followers</p>
+                      <p className="text-sm font-medium text-white truncate">{creator.full_name || creator.username}</p>
+                      <p className="text-xs text-white/35">{(creator.followers_count / 1000).toFixed(1)}K followers</p>
                     </div>
-                    <button className="h-7 px-3 rounded-lg border border-brand-purple/30 text-xs font-medium text-brand-violet hover:bg-brand-purple/15 transition-all whitespace-nowrap">
+                    <button className="h-7 px-3 rounded-lg border border-white/20 text-xs font-medium text-white hover:bg-white/10 transition-all whitespace-nowrap">
                       Follow
                     </button>
                   </div>

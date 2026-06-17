@@ -156,14 +156,20 @@ export default function OnboardingPage() {
 
       if (avatarFile) {
         setAvatarUploading(true)
-        avatarUrl = await uploadImage(avatarFile, 'avatars', userId)
-        setAvatarUploading(false)
+        try {
+          avatarUrl = await uploadImage(avatarFile, 'avatars', userId)
+        } finally {
+          setAvatarUploading(false)
+        }
       }
 
       if (coverFile) {
         setCoverUploading(true)
-        coverUrl = await uploadImage(coverFile, 'banners', userId)
-        setCoverUploading(false)
+        try {
+          coverUrl = await uploadImage(coverFile, 'banners', userId)
+        } finally {
+          setCoverUploading(false)
+        }
       }
 
       const ageNum = age ? parseInt(age, 10) : null

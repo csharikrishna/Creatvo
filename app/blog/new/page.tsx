@@ -39,6 +39,7 @@ export default function NewBlogPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [showSEO, setShowSEO] = useState(false)
   const [autoSaved, setAutoSaved] = useState(false)
+  const [articleId, setArticleId] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -59,6 +60,17 @@ export default function NewBlogPage() {
       setTagInput('')
     }
   }, [tagInput, tags])
+
+  // Auto-save logic
+  useEffect(() => {
+    if (!userId || !title.trim() || status === 'published') return
+    
+    const timer = setTimeout(() => {
+      handleSave('draft', true)
+    }, 30000) // Auto-save every 30s of inactivity
+    
+    return () => clearTimeout(timer)
+  }, [title, content, excerpt, category, tags, userId, status])
 
   const handleCoverSelect = (file: File) => {
     if (file.size > 2 * 1024 * 1024) { toast.error('Cover image must be under 2MB'); return }
@@ -83,16 +95,16 @@ export default function NewBlogPage() {
     return data.publicUrl
   }
 
-  const handleSave = async (publishStatus: 'draft' | 'published' = status) => {
-    if (!userId) { toast.error('Not authenticated'); return }
-    if (!title.trim()) { toast.error('Please add a title'); return }
+  const handleSave = async (publishStatus: 'draft' | 'published' = status, isAutoSave = false) => {
+    if (!userId) { if (!isAutoSave) toast.error('Not authenticated'); return }
+    if (!title.trim()) { if (!isAutoSave) toast.error('Please add a title'); return }
     if (publishStatus === 'published' && !content.trim()) {
       toast.error('Content cannot be empty to publish')
       return
     }
 
-    setSaving(true)
-    const toastId = toast.loading(publishStatus === 'published' ? 'Publishing...' : 'Saving draft...')
+    if (!isAutoSave) setSaving(true)
+    const toastId = isAutoSave ? undefined : toast.loading(publishStatus === 'published' ? 'Publishing...' : 'Saving draft...')
 
     try {
       let coverUrl: string | null = null
@@ -100,7 +112,7 @@ export default function NewBlogPage() {
         coverUrl = await uploadCover()
       }
 
-      const articleSlug = await ensureUniqueSlug(slug, userId)
+      const articleSlug = articleId ? slug : await ensureUniqueSlug(slug, userId)
 
       const articleData = {
         user_id: userId,
@@ -118,24 +130,37 @@ export default function NewBlogPage() {
         published_at: publishStatus === 'published' ? new Date().toISOString() : null,
       }
 
-      const { data, error } = await supabase
-        .from('articles')
-        .insert(articleData)
-        .select('id, slug')
-        .single()
+      let query = supabase.from('articles')
+      if (articleId) {
+        query = query.update(articleData).eq('id', articleId)
+      } else {
+        query = query.insert(articleData)
+      }
+
+      const { data, error } = await query.select('id, slug').single()
 
       if (error) throw error
+      
+      if (!articleId) {
+        setArticleId(data.id)
+      }
 
-      toast.success(
-        publishStatus === 'published' ? '🎉 Article published!' : '📁 Draft saved!',
-        { id: toastId }
-      )
-
-      router.push(publishStatus === 'published' ? `/blog/${data.slug}` : '/dashboard/content')
+      if (!isAutoSave) {
+        toast.success(
+          publishStatus === 'published' ? '🎉 Article published!' : '📁 Draft saved!',
+          { id: toastId }
+        )
+        router.push(publishStatus === 'published' ? `/blog/${data.slug}` : '/dashboard/content')
+      } else {
+        setAutoSaved(true)
+        setTimeout(() => setAutoSaved(false), 3000)
+      }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Save failed'
-      toast.error(msg, { id: toastId })
-      setSaving(false)
+      if (!isAutoSave) {
+        const msg = err instanceof Error ? err.message : 'Save failed'
+        toast.error(msg, { id: toastId })
+        setSaving(false)
+      }
     }
   }
 

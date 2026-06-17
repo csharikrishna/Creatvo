@@ -1,17 +1,11 @@
 import type { Metadata } from 'next'
-import { Inter, Syne } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
-  display: 'swap',
-})
-
-const syne = Syne({
-  subsets: ['latin'],
-  variable: '--font-syne',
   display: 'swap',
 })
 
@@ -43,14 +37,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${syne.variable} font-sans bg-dark-bg text-white antialiased`}>
+      <body className={`${inter.variable} font-sans bg-dark-bg text-white antialiased`}>
         {children}
         <Toaster
           position="bottom-right"
           toastOptions={{
             style: {
-              background: '#111118',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: '#0A0A0A',
+              border: '1px solid #27272A',
               color: '#fff',
             },
           }}
