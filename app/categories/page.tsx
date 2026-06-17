@@ -13,38 +13,7 @@ export const metadata: Metadata = {
   description: 'Browse content by category — AI, Business, Coding, Design, and more.',
 }
 
-const mockProfile: Profile = {
-  id: '1', username: 'techguru', full_name: 'TechGuru', bio: null,
-  avatar_url: null, banner_url: null, creator_type: 'Tech Creator',
-  website_url: null, twitter_url: null, instagram_url: null,
-  followers_count: 86300, following_count: 120, views_count: 1200000,
-  posts_count: 245, is_verified: true, interests: [],
-  created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-}
-
-function getMockItemsForCategory(catSlug: string): ContentItem[] {
-  return Array.from({ length: 4 }, (_, i) => ({
-    id: `${catSlug}-${i}`,
-    category_id: catSlug,
-    user_id: '1',
-    title: `Top ${catSlug.charAt(0).toUpperCase() + catSlug.slice(1)} Resource #${i + 1}`,
-    thumbnail_url: null,
-    description: 'High value resource for creators and builders.',
-    external_link: null,
-    download_link: null,
-    content_type: 'resource' as const,
-    tags: [catSlug],
-    views_count: Math.floor(50000 - i * 8000),
-    clicks_count: Math.floor(3000 - i * 400),
-    likes_count: Math.floor(1200 - i * 200),
-    saves_count: Math.floor(800 - i * 100),
-    shares_count: Math.floor(200 - i * 30),
-    engagement_score: 500 - i * 60,
-    created_at: new Date(Date.now() - i * 86400000).toISOString(),
-    updated_at: new Date().toISOString(),
-    profiles: mockProfile,
-  }))
-}
+// Mock data removed in favor of real database query
 
 export default async function CategoriesPage({
   searchParams,
@@ -54,6 +23,12 @@ export default async function CategoriesPage({
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const activeFilter = searchParams.filter
+
+  // Fetch real content items
+  let query = supabase.from('content_items').select('*, profiles(*), categories(*)')
+  
+  // For MVP, we fetch top 100 items and filter in memory by tags or category slug
+  const { data: allItems } = await query.order('engagement_score', { ascending: false }).limit(100)
 
   const displayCats = activeFilter
     ? PLATFORM_CATEGORIES.filter(c => c.slug === activeFilter)
@@ -108,36 +83,55 @@ export default async function CategoriesPage({
 
         {/* Category sections */}
         <div className="space-y-14">
-          {displayCats.map((cat) => (
-            <section key={cat.slug}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="h-10 w-10 rounded-xl flex items-center justify-center text-2xl border border-white/[0.06]"
-                    style={{ background: `linear-gradient(135deg, ${cat.color}20, ${cat.color}08)` }}
-                  >
-                    {cat.icon}
-                  </div>
-                  <div>
-                    <h2 className="font-display text-xl font-black text-white">{cat.label}</h2>
-                    <p className="text-xs text-white/40">{getMockItemsForCategory(cat.slug).length} resources</p>
-                  </div>
-                </div>
-                <Link
-                  href={`/categories?filter=${cat.slug}`}
-                  className="text-sm text-brand-violet hover:underline font-medium"
-                >
-                  View all →
-                </Link>
-              </div>
+          {displayCats.map((cat) => {
+            const itemsForCat = allItems?.filter((item: any) => 
+              item.tags?.includes(cat.slug) || 
+              item.categories?.slug === cat.slug
+            ) || []
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {getMockItemsForCategory(cat.slug).map((item) => (
-                  <ContentCard key={item.id} item={item} />
-                ))}
-              </div>
-            </section>
-          ))}
+            const displayItems = activeFilter ? itemsForCat : itemsForCat.slice(0, 4)
+
+            if (itemsForCat.length === 0 && !activeFilter) return null // Hide empty categories if viewing all
+
+            return (
+              <section key={cat.slug}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-10 w-10 rounded-xl flex items-center justify-center text-2xl border border-white/[0.06]"
+                      style={{ background: `linear-gradient(135deg, ${cat.color}20, ${cat.color}08)` }}
+                    >
+                      {cat.icon}
+                    </div>
+                    <div>
+                      <h2 className="font-display text-xl font-black text-white">{cat.label}</h2>
+                      <p className="text-xs text-white/40">{itemsForCat.length} resources</p>
+                    </div>
+                  </div>
+                  {!activeFilter && itemsForCat.length > 4 && (
+                    <Link
+                      href={`/categories?filter=${cat.slug}`}
+                      className="text-sm text-brand-violet hover:underline font-medium"
+                    >
+                      View all →
+                    </Link>
+                  )}
+                </div>
+
+                {displayItems.length === 0 ? (
+                  <div className="rounded-2xl border border-white/[0.06] bg-dark-card p-10 text-center text-white/50">
+                    No items found in this category yet.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {displayItems.map((item: any) => (
+                      <ContentCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                )}
+              </section>
+            )
+          })}
         </div>
       </div>
 

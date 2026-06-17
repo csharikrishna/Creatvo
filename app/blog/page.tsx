@@ -11,43 +11,7 @@ export const metadata: Metadata = {
   description: 'Read in-depth articles, tutorials, and guides from top creators on CreatoHub.',
 }
 
-const MOCK_ARTICLES = [
-  {
-    id: '1', slug: 'how-to-build-saas-india', title: 'How to Build a SaaS Product in India with ₹0 in 2024',
-    excerpt: 'A complete guide to building and launching a profitable SaaS product with no upfront investment. Learn the exact tools, strategies, and marketing tactics that work.',
-    cover_image: null, reading_time: 12, views_count: 48500, likes_count: 1840, saves_count: 2100,
-    published_at: new Date(Date.now() - 86400000 * 2).toISOString(), tags: ['saas', 'startup', 'india'],
-    category: 'Business', profiles: { username: 'builderwala', full_name: 'BuilderWala', avatar_url: null, is_verified: true }
-  },
-  {
-    id: '2', slug: 'complete-guide-ai-tools-creators', title: 'The Complete Guide to AI Tools for Content Creators in 2024',
-    excerpt: 'Every AI tool you need for writing, design, video, and automation. Tested and ranked by a creator with 100K+ followers.',
-    cover_image: null, reading_time: 8, views_count: 36200, likes_count: 1240, saves_count: 1900,
-    published_at: new Date(Date.now() - 86400000 * 5).toISOString(), tags: ['ai', 'tools', 'creators'],
-    category: 'AI', profiles: { username: 'techguru', full_name: 'TechGuru', avatar_url: null, is_verified: true }
-  },
-  {
-    id: '3', slug: 'instagram-growth-2024', title: '17 Instagram Growth Hacks That Actually Worked in 2024',
-    excerpt: 'I grew from 2K to 50K followers using these exact tactics. No paid promotion, no bots, just strategy.',
-    cover_image: null, reading_time: 6, views_count: 29100, likes_count: 980, saves_count: 1600,
-    published_at: new Date(Date.now() - 86400000 * 7).toISOString(), tags: ['instagram', 'growth', 'marketing'],
-    category: 'Marketing', profiles: { username: 'growthHacker', full_name: 'GrowthHacker', avatar_url: null, is_verified: false }
-  },
-  {
-    id: '4', slug: 'learn-python-free-resources', title: 'Learn Python for Free: 25 Resources Ranked by Quality',
-    excerpt: 'Curated list of the best free Python learning resources. From absolute beginner to job-ready developer.',
-    cover_image: null, reading_time: 5, views_count: 22800, likes_count: 870, saves_count: 2800,
-    published_at: new Date(Date.now() - 86400000 * 10).toISOString(), tags: ['python', 'coding', 'free'],
-    category: 'Coding', profiles: { username: 'coderlife', full_name: 'Coder Life', avatar_url: null, is_verified: false }
-  },
-  {
-    id: '5', slug: 'notion-productivity-system', title: 'The Ultimate Notion Productivity System for Entrepreneurs',
-    excerpt: 'How I manage my entire business, content pipeline, and personal life inside Notion. Full template included.',
-    cover_image: null, reading_time: 10, views_count: 18900, likes_count: 720, saves_count: 2200,
-    published_at: new Date(Date.now() - 86400000 * 14).toISOString(), tags: ['notion', 'productivity', 'templates'],
-    category: 'Productivity', profiles: { username: 'pkmenthusiast', full_name: 'PKM Enthusiast', avatar_url: null, is_verified: false }
-  },
-]
+// Mock data removed in favor of real database query
 
 const CATEGORY_FILTERS = ['All', 'AI', 'Business', 'Coding', 'Design', 'Marketing', 'Productivity', 'Finance']
 
@@ -56,8 +20,16 @@ export default async function BlogPage({ searchParams }: { searchParams: { categ
   const { data: { user } } = await supabase.auth.getUser()
   const activeCategory = searchParams.category || 'All'
 
-  const featured = MOCK_ARTICLES[0]
-  const rest = MOCK_ARTICLES.slice(1)
+  let query = supabase.from('articles').select('*, profiles(*)').eq('status', 'published')
+  
+  if (activeCategory !== 'All') {
+    query = query.eq('category', activeCategory)
+  }
+  
+  const { data: articles } = await query.order('published_at', { ascending: false }).limit(20)
+
+  const featured = articles && articles.length > 0 ? articles[0] : null
+  const rest = articles && articles.length > 1 ? articles.slice(1) : []
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -104,8 +76,13 @@ export default async function BlogPage({ searchParams }: { searchParams: { categ
           {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Featured article */}
-            <Link href={`/blog/${featured.slug}`}>
-              <article className="rounded-3xl border border-white/[0.06] bg-dark-card overflow-hidden card-hover cursor-pointer group">
+            {!featured ? (
+              <div className="rounded-2xl border border-white/[0.06] bg-dark-card p-10 text-center text-white/50">
+                No articles found in this category yet.
+              </div>
+            ) : (
+              <Link href={`/blog/${featured.slug}`}>
+                <article className="rounded-3xl border border-white/[0.06] bg-dark-card overflow-hidden card-hover cursor-pointer group">
                 {/* Thumbnail placeholder */}
                 <div className="aspect-video bg-gradient-to-br from-brand-purple/20 via-dark-border to-dark-bg relative overflow-hidden">
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -127,11 +104,11 @@ export default async function BlogPage({ searchParams }: { searchParams: { categ
                     <div className="flex items-center gap-2.5">
                       <div className="h-8 w-8 rounded-xl overflow-hidden bg-brand-purple/20">
                         <div className="h-full w-full flex items-center justify-center text-sm font-bold text-brand-violet">
-                          {featured.profiles.username[0].toUpperCase()}
+                          {featured.profiles?.username?.[0]?.toUpperCase() || '?'}
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-white">{featured.profiles.full_name}</p>
+                        <p className="text-sm font-medium text-white">{featured.profiles?.full_name || featured.profiles?.username || 'Unknown'}</p>
                         <p className="text-xs text-white/30">{timeAgo(featured.published_at)}</p>
                       </div>
                     </div>
@@ -144,6 +121,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { categ
                 </div>
               </article>
             </Link>
+            )}
 
             {/* Article list */}
             <div className="space-y-3">
@@ -165,7 +143,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { categ
                         {article.title}
                       </h3>
                       <div className="flex items-center gap-3 text-[10px] text-white/30">
-                        <span>@{article.profiles.username}</span>
+                        <span>@{article.profiles?.username || 'unknown'}</span>
                         <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" /> {article.reading_time}m read</span>
                         <span className="flex items-center gap-0.5"><Eye className="h-2.5 w-2.5" /> {formatNumber(article.views_count)}</span>
                       </div>
@@ -185,7 +163,10 @@ export default async function BlogPage({ searchParams }: { searchParams: { categ
                 <h3 className="font-display font-bold text-white">Trending</h3>
               </div>
               <div className="space-y-3">
-                {MOCK_ARTICLES.map((a, i) => (
+                {!articles || articles.length === 0 ? (
+                  <div className="text-xs text-white/50 text-center py-4">No trending articles</div>
+                ) : null}
+                {articles?.slice(0, 5).map((a, i) => (
                   <Link key={a.id} href={`/blog/${a.slug}`}>
                     <div className="flex gap-3 hover:bg-white/[0.02] p-2 rounded-xl transition-all cursor-pointer">
                       <span className="font-display font-black text-2xl text-white/10 w-7 shrink-0">

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024 // 1MB
 
-type UploadBucket = 'avatars' | 'banners' | 'content-thumbnails' | 'article-images' | 'post-images'
+type UploadBucket = 'avatars' | 'banners' | 'content-thumbnails' | 'article-images'
 
 /**
  * Upload an image file to Supabase Storage

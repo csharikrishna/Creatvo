@@ -6,7 +6,7 @@ import { CategoryGrid } from '@/components/category-grid/CategoryGrid'
 import { Footer } from '@/components/Footer'
 import { CreatorCard, CreatorCardSkeleton } from '@/components/creator-card/CreatorCard'
 import { ContentCard, ContentCardSkeleton } from '@/components/content-card/ContentCard'
-import { ChevronRight, TrendingUp, Flame, Clock, ArrowRight } from 'lucide-react'
+import { ChevronRight, TrendingUp, Flame, Clock, ArrowRight, UserCircle, Target, PenTool, Rocket } from 'lucide-react'
 import Link from 'next/link'
 
 async function TrendingCreators() {
@@ -75,10 +75,10 @@ async function LatestContent() {
 }
 
 const HOW_IT_WORKS = [
-  { icon: '👤', step: '01', title: 'Create Account', desc: 'Sign up and create your creator profile in seconds.' },
-  { icon: '🎯', step: '02', title: 'Complete Onboarding', desc: 'Set your username, bio, avatar, and creator type.' },
-  { icon: '📤', step: '03', title: 'Publish Content', desc: 'Write articles, share posts, and build your audience.' },
-  { icon: '🚀', step: '04', title: 'Grow & Connect', desc: 'Get followers, likes, and engage with your community.' },
+  { icon: UserCircle, step: '01', title: 'Create Account', desc: 'Sign up and create your creator profile in seconds.' },
+  { icon: Target, step: '02', title: 'Complete Onboarding', desc: 'Set your username, bio, avatar, and creator type.' },
+  { icon: PenTool, step: '03', title: 'Publish Content', desc: 'Write articles, share posts, and build your audience.' },
+  { icon: Rocket, step: '04', title: 'Grow & Connect', desc: 'Get followers, likes, and engage with your community.' },
 ]
 
 export default async function HomePage() {
@@ -203,31 +203,35 @@ export default async function HomePage() {
       </div>
 
       {/* How it Works */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-display text-3xl md:text-4xl font-black text-white mb-3">How Creatvo Works</h2>
-            <p className="text-white/40 max-w-lg mx-auto">Start creating, sharing, and growing in just 4 simple steps</p>
+      <section className="py-20 relative overflow-hidden">
+        {/* Background mesh glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-brand-purple/5 blur-[120px] rounded-full pointer-events-none" />
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="font-display text-3xl md:text-5xl font-black text-white mb-4 tracking-tight">How Creatvo Works</h2>
+            <p className="text-white/50 text-lg max-w-lg mx-auto">Start creating, sharing, and growing in just 4 simple steps.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {HOW_IT_WORKS.map((step, i) => (
-              <div key={i} className="relative group">
-                {i < HOW_IT_WORKS.length - 1 && (
-                  <div className="hidden lg:block absolute top-10 left-full w-full h-px bg-gradient-to-r from-brand-purple/30 to-transparent z-10 -translate-x-4" />
-                )}
-                <div className="rounded-2xl border border-white/[0.06] bg-dark-card p-6 text-center card-hover">
-                  <div className="relative mx-auto mb-5 h-16 w-16">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-brand-purple/20 to-brand-accent/10 border border-brand-purple/20 flex items-center justify-center text-3xl">
-                      {step.icon}
-                    </div>
-                    <span className="absolute -top-2 -right-2 text-[10px] font-bold text-brand-violet bg-brand-purple/15 border border-brand-purple/25 rounded-full h-5 w-5 flex items-center justify-center">
-                      {step.step.slice(1)}
-                    </span>
-                  </div>
-                  <h3 className="font-display font-bold text-white mb-2">{step.title}</h3>
-                  <p className="text-sm text-white/40 leading-relaxed">{step.desc}</p>
+              <div key={i} className="group relative rounded-3xl border border-white/5 bg-dark-card p-8 card-hover overflow-hidden">
+                {/* Step number watermark */}
+                <div className="absolute -top-6 -right-6 text-8xl font-black text-white/[0.02] group-hover:text-brand-purple/[0.05] transition-colors select-none pointer-events-none">
+                  {step.step}
                 </div>
+                
+                <div className="relative mb-8">
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-purple/15 to-transparent border border-brand-purple/20 flex items-center justify-center text-brand-purple group-hover:scale-110 transition-transform duration-300">
+                    <step.icon className="h-6 w-6 text-brand-accent" />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-md bg-brand-purple/20 border border-brand-purple/30 text-brand-light text-[10px] font-black">
+                    STEP {step.step.slice(1)}
+                  </div>
+                </div>
+                
+                <h3 className="font-display font-bold text-white text-xl mb-3">{step.title}</h3>
+                <p className="text-sm text-white/40 leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>

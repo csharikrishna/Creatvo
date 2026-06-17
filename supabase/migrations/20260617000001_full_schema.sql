@@ -8,6 +8,22 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 -- =============================================
 -- TABLE: profiles
 -- =============================================
+DROP TABLE IF EXISTS public.content_views CASCADE;
+DROP TABLE IF EXISTS public.reports CASCADE;
+DROP TABLE IF EXISTS public.community_post_votes CASCADE;
+DROP TABLE IF EXISTS public.community_posts CASCADE;
+DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TABLE IF EXISTS public.follows CASCADE;
+DROP TABLE IF EXISTS public.reposts CASCADE;
+DROP TABLE IF EXISTS public.saves CASCADE;
+DROP TABLE IF EXISTS public.likes CASCADE;
+DROP TABLE IF EXISTS public.comments CASCADE;
+DROP TABLE IF EXISTS public.articles CASCADE;
+DROP TABLE IF EXISTS public.posts CASCADE;
+DROP TABLE IF EXISTS public.content_items CASCADE;
+DROP TABLE IF EXISTS public.categories CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   role TEXT DEFAULT 'creator' NOT NULL CHECK (role IN ('admin', 'creator', 'user')),
@@ -38,7 +54,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- TABLE: categories
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.categories (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   slug TEXT NOT NULL,
@@ -56,7 +72,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
 -- TABLE: content_items
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.content_items (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   category_id UUID REFERENCES public.categories(id) ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
@@ -76,9 +92,9 @@ CREATE TABLE IF NOT EXISTS public.content_items (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   search_vector tsvector GENERATED ALWAYS AS (
-    setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
-    setweight(to_tsvector('english', coalesce(description, '')), 'B') ||
-    setweight(to_tsvector('english', coalesce(array_to_string(tags, ' '), '')), 'C')
+    setweight(to_tsvector('english'::regconfig, coalesce(title, '')), 'A') ||
+    setweight(to_tsvector('english'::regconfig, coalesce(description, '')), 'B') ||
+    setweight(array_to_tsvector(coalesce(tags, '{}')), 'C')
   ) STORED
 );
 
@@ -86,7 +102,7 @@ CREATE TABLE IF NOT EXISTS public.content_items (
 -- TABLE: posts (social posts)
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.posts (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   content TEXT NOT NULL,
   images TEXT[] DEFAULT '{}',
@@ -107,8 +123,8 @@ CREATE TABLE IF NOT EXISTS public.posts (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   search_vector tsvector GENERATED ALWAYS AS (
-    setweight(to_tsvector('english', coalesce(content, '')), 'A') ||
-    setweight(to_tsvector('english', coalesce(link_title, '')), 'B')
+    setweight(to_tsvector('english'::regconfig, coalesce(content, '')), 'A') ||
+    setweight(to_tsvector('english'::regconfig, coalesce(link_title, '')), 'B')
   ) STORED
 );
 
@@ -116,7 +132,7 @@ CREATE TABLE IF NOT EXISTS public.posts (
 -- TABLE: articles (blog)
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.articles (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   slug TEXT NOT NULL,
@@ -139,9 +155,9 @@ CREATE TABLE IF NOT EXISTS public.articles (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   search_vector tsvector GENERATED ALWAYS AS (
-    setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
-    setweight(to_tsvector('english', coalesce(excerpt, '')), 'B') ||
-    setweight(to_tsvector('english', coalesce(array_to_string(tags, ' '), '')), 'C')
+    setweight(to_tsvector('english'::regconfig, coalesce(title, '')), 'A') ||
+    setweight(to_tsvector('english'::regconfig, coalesce(excerpt, '')), 'B') ||
+    setweight(array_to_tsvector(coalesce(tags, '{}')), 'C')
   ) STORED,
   UNIQUE(user_id, slug)
 );
@@ -150,7 +166,7 @@ CREATE TABLE IF NOT EXISTS public.articles (
 -- TABLE: comments
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.comments (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   parent_id UUID REFERENCES public.comments(id) ON DELETE CASCADE,
   content_type TEXT NOT NULL CHECK (content_type IN ('post', 'article', 'content_item', 'community_post')),
@@ -166,7 +182,7 @@ CREATE TABLE IF NOT EXISTS public.comments (
 -- TABLE: likes (polymorphic)
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.likes (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   content_type TEXT NOT NULL CHECK (content_type IN ('post', 'article', 'content_item', 'comment', 'community_post')),
   content_id UUID NOT NULL,
@@ -178,7 +194,7 @@ CREATE TABLE IF NOT EXISTS public.likes (
 -- TABLE: saves / bookmarks
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.saves (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   content_type TEXT NOT NULL CHECK (content_type IN ('post', 'article', 'content_item')),
   content_id UUID NOT NULL,
@@ -190,7 +206,7 @@ CREATE TABLE IF NOT EXISTS public.saves (
 -- TABLE: reposts
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.reposts (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -201,7 +217,7 @@ CREATE TABLE IF NOT EXISTS public.reposts (
 -- TABLE: follows
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.follows (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   follower_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   following_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -213,7 +229,7 @@ CREATE TABLE IF NOT EXISTS public.follows (
 -- TABLE: notifications
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.notifications (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   actor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('like', 'comment', 'follow', 'mention', 'repost', 'save', 'reply')),
@@ -228,7 +244,7 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 -- TABLE: community_posts (Reddit-like)
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.community_posts (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   content TEXT,
@@ -247,7 +263,7 @@ CREATE TABLE IF NOT EXISTS public.community_posts (
 -- TABLE: community_post_votes
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.community_post_votes (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   post_id UUID REFERENCES public.community_posts(id) ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   vote INTEGER DEFAULT 1 CHECK (vote IN (1, -1)),
@@ -259,7 +275,7 @@ CREATE TABLE IF NOT EXISTS public.community_post_votes (
 -- TABLE: content_views (analytics)
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.content_views (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   content_id UUID NOT NULL,
   content_type TEXT NOT NULL DEFAULT 'content_item',
   viewer_ip TEXT,
@@ -272,7 +288,7 @@ CREATE TABLE IF NOT EXISTS public.content_views (
 -- TABLE: reports (moderation)
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.reports (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   reporter_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   content_type TEXT NOT NULL,
   content_id UUID NOT NULL,
@@ -592,7 +608,18 @@ VALUES
   ('article-images', 'article-images', true, 1048576, ARRAY['image/jpeg', 'image/png', 'image/webp'])
 ON CONFLICT (id) DO NOTHING;
 
--- Storage policies
+-- Storage policies (drop first to be idempotent)
+DROP POLICY IF EXISTS "avatars_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "avatars_upload_own" ON storage.objects;
+DROP POLICY IF EXISTS "avatars_update_own" ON storage.objects;
+DROP POLICY IF EXISTS "avatars_delete_own" ON storage.objects;
+DROP POLICY IF EXISTS "banners_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "banners_upload_own" ON storage.objects;
+DROP POLICY IF EXISTS "thumbnails_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "thumbnails_upload_own" ON storage.objects;
+DROP POLICY IF EXISTS "article_images_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "article_images_upload_own" ON storage.objects;
+
 CREATE POLICY "avatars_public_read" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
 CREATE POLICY "avatars_upload_own" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 CREATE POLICY "avatars_update_own" ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);

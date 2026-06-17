@@ -118,7 +118,7 @@ export type Comment = {
   id: string
   user_id: string
   parent_id: string | null
-  content_type: 'post' | 'article' | 'content_item'
+  content_type: 'post' | 'article' | 'content_item' | 'community_post'
   content_id: string
   body: string
   likes_count: number
@@ -262,6 +262,11 @@ export type Database = {
     Functions: {
       increment_likes: { Args: { p_table: string; p_id: string }; Returns: undefined }
       decrement_likes: { Args: { p_table: string; p_id: string }; Returns: undefined }
+      increment_saves: { Args: { p_table: string; p_id: string }; Returns: undefined }
+      decrement_saves: { Args: { p_table: string; p_id: string }; Returns: undefined }
+      increment_comments: { Args: { p_table: string; p_id: string }; Returns: undefined }
+      decrement_comments: { Args: { p_table: string; p_id: string }; Returns: undefined }
+      increment_views: { Args: { p_table: string; p_id: string }; Returns: undefined }
       create_notification: {
         Args: { p_user_id: string; p_actor_id: string; p_type: string; p_content_type?: string | null; p_content_id?: string | null; p_message?: string }
         Returns: undefined

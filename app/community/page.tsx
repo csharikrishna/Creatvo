@@ -11,43 +11,7 @@ export const metadata: Metadata = {
   description: 'Join the Creatvo community — discuss ideas, share resources, and connect with creators.',
 }
 
-const MOCK_POSTS = [
-  {
-    id: '1', title: 'What AI tools are you using to grow your content?',
-    content: 'I\'ve been experimenting with a bunch of AI tools lately. Claude for writing, Midjourney for thumbnails, and Descript for video editing. What\'s working for you guys?',
-    post_type: 'question', upvotes: 342, comments_count: 89, tags: ['ai', 'tools', 'content'],
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    profiles: { username: 'techguru', full_name: 'TechGuru', avatar_url: null, is_verified: true }
-  },
-  {
-    id: '2', title: 'I built a micro-SaaS and made ₹50K in 30 days — here\'s how',
-    content: 'Started with a simple problem I had. Built a solution in 2 weeks using Next.js + Supabase. Launched on Twitter and ProductHunt. Full breakdown inside.',
-    post_type: 'text', upvotes: 891, comments_count: 134, tags: ['saas', 'startup', 'success'],
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    profiles: { username: 'builderwala', full_name: 'BuilderWala', avatar_url: null, is_verified: false }
-  },
-  {
-    id: '3', title: 'Free resource: 100 ChatGPT prompts for marketers',
-    content: 'Compiled 100 battle-tested ChatGPT prompts for marketing use cases. Copy-paste ready. Share with your team.',
-    post_type: 'link', upvotes: 567, comments_count: 45, tags: ['chatgpt', 'marketing', 'free'],
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    profiles: { username: 'marketingpro', full_name: 'Marketing Pro', avatar_url: null, is_verified: true }
-  },
-  {
-    id: '4', title: 'Is Notion still the best tool for knowledge management in 2024?',
-    content: 'Been seeing Obsidian and Logseq gain traction. What\'s everyone\'s go-to for PKM these days? Thinking of switching from Notion.',
-    post_type: 'question', upvotes: 213, comments_count: 67, tags: ['notion', 'productivity', 'pkm'],
-    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-    profiles: { username: 'pkmenthusiast', full_name: 'PKM Enthusiast', avatar_url: null, is_verified: false }
-  },
-  {
-    id: '5', title: 'My journey from 0 to 10K followers on Instagram in 6 months',
-    content: 'Documenting everything I did to grow from scratch. Content strategy, posting frequency, engagement tactics, and monetization once I hit 5K.',
-    post_type: 'text', upvotes: 445, comments_count: 78, tags: ['instagram', 'growth', 'creator'],
-    created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
-    profiles: { username: 'growthHacker', full_name: 'GrowthHacker', avatar_url: null, is_verified: false }
-  },
-]
+// Mock data removed in favor of real database query
 
 const TABS = [
   { id: 'hot', label: 'Hot', icon: Flame },
@@ -66,6 +30,19 @@ export default async function CommunityPage({ searchParams }: { searchParams: { 
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const tab = searchParams.tab || 'hot'
+
+  let query = supabase.from('community_posts').select('*, profiles(*)')
+  
+  if (tab === 'new') {
+    query = query.order('created_at', { ascending: false })
+  } else if (tab === 'trending') {
+    query = query.order('upvotes', { ascending: false }).order('comments_count', { ascending: false })
+  } else {
+    // hot
+    query = query.order('comments_count', { ascending: false }).order('upvotes', { ascending: false })
+  }
+
+  const { data: posts } = await query.limit(20)
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -115,19 +92,24 @@ export default async function CommunityPage({ searchParams }: { searchParams: { 
 
             {/* Posts */}
             <div className="space-y-3">
-              {MOCK_POSTS.map((post) => (
+              {posts?.length === 0 ? (
+                <div className="rounded-2xl border border-white/[0.06] bg-dark-card p-10 text-center text-white/50">
+                  No posts found. Be the first to start a discussion!
+                </div>
+              ) : null}
+              {posts?.map((post) => (
                 <article key={post.id} className="rounded-2xl border border-white/[0.06] bg-dark-card p-5 hover:border-white/10 card-hover cursor-pointer group">
                   {/* Header */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className="h-8 w-8 rounded-xl overflow-hidden bg-brand-purple/20 shrink-0">
                       <div className="h-full w-full flex items-center justify-center text-sm font-bold text-brand-violet">
-                        {post.profiles.username[0].toUpperCase()}
+                        {post.profiles?.username?.[0]?.toUpperCase() || '?'}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-white">{post.profiles.full_name}</span>
-                        {post.profiles.is_verified && (
+                        <span className="text-sm font-semibold text-white">{post.profiles?.full_name || post.profiles?.username}</span>
+                        {post.profiles?.is_verified && (
                           <svg className="h-3.5 w-3.5 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
@@ -135,7 +117,7 @@ export default async function CommunityPage({ searchParams }: { searchParams: { 
                         <span className="text-xs text-white/30">·</span>
                         <span className="text-xs text-white/30">{timeAgo(post.created_at)}</span>
                       </div>
-                      <span className="text-xs text-white/30">@{post.profiles.username}</span>
+                      <span className="text-xs text-white/30">@{post.profiles?.username}</span>
                     </div>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border capitalize ${POST_TYPE_COLORS[post.post_type] || POST_TYPE_COLORS.text}`}>
                       {post.post_type}
@@ -146,14 +128,16 @@ export default async function CommunityPage({ searchParams }: { searchParams: { 
                   <h3 className="font-display font-bold text-white text-base mb-2 group-hover:text-brand-violet transition-colors">
                     {post.title}
                   </h3>
-                  <p className="text-sm text-white/50 line-clamp-2 leading-relaxed mb-4">
-                    {post.content}
-                  </p>
+                  {post.content && (
+                    <p className="text-sm text-white/50 line-clamp-2 leading-relaxed mb-4">
+                      {post.content}
+                    </p>
+                  )}
 
                   {/* Tags */}
-                  {post.tags.length > 0 && (
+                  {post.tags?.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-4">
-                      {post.tags.map(tag => (
+                      {post.tags.map((tag: string) => (
                         <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-white/40 font-medium">
                           #{tag}
                         </span>
